@@ -29,15 +29,7 @@ export function ToastContainer() {
   if (!toasts.length) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: 24,
-      right: 24,
-      zIndex: 9999,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-    }}>
+    <div className="toast-container">
       {toasts.map(t => (
         <div key={t.id} className={`toast toast-${t.type}`}>
           <span className="toast-icon">

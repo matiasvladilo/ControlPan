@@ -805,21 +805,192 @@ tbody tr.row-inactive:hover { background: var(--bg-2); }
 }
 .btn-toggle-off:hover { background: var(--bg-2); color: var(--text-2); }
 
-/* ── Responsive ──────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  header { padding: 0 16px; }
-  nav    { padding: 0 16px; overflow-x: auto; }
-  main   { padding: 16px; }
-
-  .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .page-header-actions { width: 100%; justify-content: flex-end; }
-
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .cc-grid    { grid-template-columns: 1fr; }
-
-  nav button span.nav-label { display: none; }
-  nav button { padding: 8px 10px; }
+/* ── Toast container ─────────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-@media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr; }
+
+/* ── Responsive — mobile first ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Header */
+  header {
+    padding: 0 16px;
+    height: 50px;
+  }
+  .date-display { display: none; }
+
+  /* ── Bottom navigation ── */
+  nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    top: auto;
+    padding: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    justify-content: space-around;
+    z-index: 100;
+    box-shadow: 0 -1px 8px rgba(0,0,0,.06);
+    background: var(--surface);
+    /* safe area for iPhone home bar */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  nav button {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 4px 10px;
+    margin: 0;
+    border-radius: 0;
+    font-size: 10px;
+    min-height: 56px;
+  }
+  nav button span.nav-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  nav button svg { width: 20px; height: 20px; }
+
+  /* Main — padding-bottom for bottom nav */
+  main {
+    padding: 16px 14px calc(72px + env(safe-area-inset-bottom, 0px));
+    max-width: 100%;
+  }
+
+  /* Page header */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .page-title  { font-size: 18px; }
+  .page-header-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-header-actions .btn,
+  .page-header-actions .btn-outline {
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card   { padding: 14px 12px; }
+  .stat-value  { font-size: 19px; }
+  .stat-label  { font-size: 11px; }
+  .stat-sub    { font-size: 11px; }
+  .stat-icon   { width: 28px; height: 28px; }
+
+  /* Tables — horizontal scroll */
+  .table-wrap  {
+    border-radius: var(--r-md);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table        { min-width: 520px; font-size: 12.5px; }
+  thead th     { padding: 9px 12px; font-size: 11px; }
+  tbody td     { padding: 10px 12px; }
+  tfoot td     { padding: 9px 12px; }
+
+  /* Filter row */
+  .filter-row  { flex-direction: column; gap: 8px; }
+  .filter-row select,
+  .filter-row input {
+    width: 100%;
+    font-size: 16px; /* prevent iOS zoom */
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+
+  /* Buttons — touch friendly (min 44px) */
+  .btn         { padding: 11px 16px; min-height: 44px; font-size: 13px; }
+  .btn-outline { padding: 10px 14px; min-height: 44px; font-size: 13px; }
+  .btn-sm      { padding: 8px 12px;  min-height: 36px; font-size: 12px; }
+  .btn-danger  { padding: 8px 10px;  min-height: 36px; }
+  .btn-toggle-on,
+  .btn-toggle-off { padding: 7px 10px; min-height: 34px; font-size: 11px; }
+
+  /* Forms — font-size >= 16px prevents iOS auto-zoom */
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+    padding: 11px 12px;
+    min-height: 44px;
+  }
+  .field label { font-size: 12.5px; }
+
+  /* Modals — bottom sheet */
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    padding: 20px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+    animation: slideUp 0.22s ease;
+  }
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .modal-actions .btn,
+  .modal-actions .btn-outline {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Toast above bottom nav */
+  .toast-container {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+    left: 12px;
+  }
+  .toast {
+    min-width: unset;
+    max-width: 100%;
+    width: 100%;
+    font-size: 13px;
+  }
+
+  /* Info box */
+  .info-box { font-size: 12px; padding: 10px 12px; }
+
+  /* Section title */
+  .section-title { font-size: 12px; margin: 16px 0 10px; }
+
+  /* CC grid (no longer used but keep as fallback) */
+  .cc-grid { grid-template-columns: 1fr; }
+
+  /* Form section label */
+  .form-section-label { font-size: 10.5px; margin-bottom: 8px; }
+}
+
+/* Very small screens */
+@media (max-width: 380px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-value { font-size: 16px; }
+  nav button  { font-size: 9px; padding: 8px 2px 10px; }
+  nav button svg { width: 18px; height: 18px; }
 }
