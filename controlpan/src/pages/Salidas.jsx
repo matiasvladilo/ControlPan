@@ -215,6 +215,7 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
   const [confirmId, setConfirmId] = useState(null);
   const [fLocal,    setFLocal]    = useState('');
   const [fMes,      setFMes]      = useState('');
+  const [fFecha,    setFFecha]    = useState('');
   const [fSearch,   setFSearch]   = useState('');
 
   const meses = useMemo(() => {
@@ -230,7 +231,8 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
       b.fecha.localeCompare(a.fecha) || (b.created_at || '').localeCompare(a.created_at || '')
     );
     if (fLocal)  data = data.filter(s => s.local === fLocal);
-    if (fMes)    data = data.filter(s => s.fecha.startsWith(fMes));
+    if (fFecha)  data = data.filter(s => s.fecha === fFecha);
+    else if (fMes) data = data.filter(s => s.fecha.startsWith(fMes));
     if (fSearch) {
       const q = fSearch.toLowerCase();
       data = data.filter(s =>
@@ -241,10 +243,15 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
   }, [salidas, fLocal, fMes, fSearch]);
 
   const totalDeuda = filtered.reduce((a, s) => a + (s.deuda || 0), 0);
-  // kg total solo de salidas en kg
   const totalKg = filtered
     .filter(s => (s.unidad || 'kg') === 'kg')
     .reduce((a, s) => a + (parseFloat(s.kg) || 0), 0);
+  const totalUnidades = filtered
+    .filter(s => s.unidad === 'unidad')
+    .reduce((a, s) => a + (parseFloat(s.kg) || 0), 0);
+  const activeFilterLabel = fFecha
+    ? fmtDate(fFecha)
+    : fMes ? monthLabel(fMes) : null;
 
   async function handleDelete(id) {
     try {
@@ -274,17 +281,28 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
           <option value="">Todos los locales</option>
           {allLocales.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
-        <select value={fMes} onChange={e => setFMes(e.target.value)}>
+        <input
+          type="date"
+          value={fFecha}
+          onChange={e => { setFFecha(e.target.value); if (e.target.value) setFMes(''); }}
+          title="Filtrar por día exacto"
+        />
+        <select value={fMes} onChange={e => { setFMes(e.target.value); if (e.target.value) setFFecha(''); }}>
           <option value="">Todos los meses</option>
           {meses.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
         </select>
         <input
           type="text"
-          placeholder="Buscar local o comentario..."
+          placeholder="Buscar..."
           value={fSearch}
           onChange={e => setFSearch(e.target.value)}
-          style={{ minWidth: 200 }}
         />
+        {(fFecha || fMes || fLocal || fSearch) && (
+          <button className="btn-outline" style={{ whiteSpace: 'nowrap' }}
+            onClick={() => { setFFecha(''); setFMes(''); setFLocal(''); setFSearch(''); }}>
+            Limpiar
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -340,7 +358,7 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={3}>{filtered.length} entregas</td>
+                <td colSpan={3}>{filtered.length} entregas{activeFilterLabel ? ` · ${activeFilterLabel}` : ''}</td>
                 <td className="mono right" style={{ fontSize: 12 }}>
                   {totalKg > 0 ? `${totalKg.toLocaleString('es-CL', { maximumFractionDigits: 1 })} kg` : '—'}
                 </td>
@@ -350,6 +368,53 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
               </tr>
             </tfoot>
           </table>
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <div style={{
+          display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{
+            flex: 1, minWidth: 160,
+            background: 'var(--text)', color: '#fff',
+            borderRadius: 'var(--r-lg)', padding: '16px 20px',
+            display: 'flex', flexDirection: 'column', gap: 4,
+          }}>
+            <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total{activeFilterLabel ? ` · ${activeFilterLabel}` : ''}
+            </span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>
+              {fmt(totalDeuda)}
+            </span>
+            <span style={{ fontSize: 12, opacity: 0.5 }}>{filtered.length} entregas</span>
+          </div>
+          {totalKg > 0 && (
+            <div style={{
+              minWidth: 130,
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)', padding: '16px 20px',
+              display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+              <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kilos</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 600, color: 'var(--text)' }}>
+                {totalKg.toLocaleString('es-CL', { maximumFractionDigits: 1 })} kg
+              </span>
+            </div>
+          )}
+          {totalUnidades > 0 && (
+            <div style={{
+              minWidth: 130,
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)', padding: '16px 20px',
+              display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+              <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unidades</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 600, color: 'var(--text)' }}>
+                {Math.round(totalUnidades)} u.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
