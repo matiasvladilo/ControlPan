@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { fmt, fmtCantidad, fmtDate, today, monthLabel } from '../utils';
+import { fmt, fmtCantidad, fmtDate, today } from '../utils';
 import { Modal, Field } from '../components/Modal';
 import { Icons } from '../components/Icons';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -213,15 +213,10 @@ function SalidaModal({ open, onClose, locales, productos, onSave }) {
 export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
   const [showModal, setShowModal] = useState(false);
   const [confirmId, setConfirmId] = useState(null);
-  const [fLocal,    setFLocal]    = useState('');
-  const [fMes,      setFMes]      = useState('');
-  const [fFecha,    setFFecha]    = useState('');
-  const [fSearch,   setFSearch]   = useState('');
-
-  const meses = useMemo(() => {
-    const set = new Set(salidas.map(s => s.fecha.substring(0, 7)));
-    return [...set].sort().reverse();
-  }, [salidas]);
+  const [fLocal,   setFLocal]   = useState('');
+  const [fDesde,   setFDesde]   = useState('');
+  const [fHasta,   setFHasta]   = useState('');
+  const [fSearch,  setFSearch]  = useState('');
 
   const allLocales = useMemo(() =>
     [...new Set(salidas.map(s => s.local))].sort(), [salidas]);
@@ -231,8 +226,8 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
       b.fecha.localeCompare(a.fecha) || (b.created_at || '').localeCompare(a.created_at || '')
     );
     if (fLocal)  data = data.filter(s => s.local === fLocal);
-    if (fFecha)  data = data.filter(s => s.fecha === fFecha);
-    else if (fMes) data = data.filter(s => s.fecha.startsWith(fMes));
+    if (fDesde)  data = data.filter(s => s.fecha >= fDesde);
+    if (fHasta)  data = data.filter(s => s.fecha <= fHasta);
     if (fSearch) {
       const q = fSearch.toLowerCase();
       data = data.filter(s =>
@@ -240,7 +235,7 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
       );
     }
     return data;
-  }, [salidas, fLocal, fMes, fSearch]);
+  }, [salidas, fLocal, fDesde, fHasta, fSearch]);
 
   const totalDeuda = filtered.reduce((a, s) => a + (s.deuda || 0), 0);
   const totalKg = filtered
@@ -249,9 +244,16 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
   const totalUnidades = filtered
     .filter(s => s.unidad === 'unidad')
     .reduce((a, s) => a + (parseFloat(s.kg) || 0), 0);
-  const activeFilterLabel = fFecha
-    ? fmtDate(fFecha)
-    : fMes ? monthLabel(fMes) : null;
+
+  const hasFilter = fLocal || fDesde || fHasta || fSearch;
+
+  const activeFilterLabel = fDesde && fHasta && fDesde === fHasta
+    ? fmtDate(fDesde)
+    : fDesde && fHasta
+      ? `${fmtDate(fDesde)} – ${fmtDate(fHasta)}`
+      : fDesde ? `Desde ${fmtDate(fDesde)}`
+      : fHasta ? `Hasta ${fmtDate(fHasta)}`
+      : null;
 
   async function handleDelete(id) {
     try {
@@ -283,23 +285,27 @@ export function Salidas({ locales, salidas, productos, onAdd, onDelete }) {
         </select>
         <input
           type="date"
-          value={fFecha}
-          onChange={e => { setFFecha(e.target.value); if (e.target.value) setFMes(''); }}
-          title="Filtrar por día exacto"
+          value={fDesde}
+          max={fHasta || undefined}
+          onChange={e => setFDesde(e.target.value)}
+          title="Desde"
         />
-        <select value={fMes} onChange={e => { setFMes(e.target.value); if (e.target.value) setFFecha(''); }}>
-          <option value="">Todos los meses</option>
-          {meses.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
-        </select>
+        <input
+          type="date"
+          value={fHasta}
+          min={fDesde || undefined}
+          onChange={e => setFHasta(e.target.value)}
+          title="Hasta"
+        />
         <input
           type="text"
           placeholder="Buscar..."
           value={fSearch}
           onChange={e => setFSearch(e.target.value)}
         />
-        {(fFecha || fMes || fLocal || fSearch) && (
+        {hasFilter && (
           <button className="btn-outline" style={{ whiteSpace: 'nowrap' }}
-            onClick={() => { setFFecha(''); setFMes(''); setFLocal(''); setFSearch(''); }}>
+            onClick={() => { setFLocal(''); setFDesde(''); setFHasta(''); setFSearch(''); }}>
             Limpiar
           </button>
         )}
