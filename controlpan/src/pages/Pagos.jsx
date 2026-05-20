@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { fmt, fmtDate, today, monthLabel } from '../utils';
+import { fmt, fmtDate, today } from '../utils';
 import { Modal, Field } from '../components/Modal';
 import { Badge } from '../components/Badge';
 import { Icons } from '../components/Icons';
@@ -92,25 +92,23 @@ export function Pagos({ locales, pagos, getCC, onAdd, onDelete }) {
   const [showModal,    setShowModal]    = useState(false);
   const [prefillLocal, setPrefillLocal] = useState('');
   const [confirmId,    setConfirmId]    = useState(null);
-  const [fLocal,       setFLocal]       = useState('');
-  const [fMes,         setFMes]         = useState('');
-
-  const meses = useMemo(() => {
-    const set = new Set(pagos.map(p => p.fecha.substring(0, 7)));
-    return [...set].sort().reverse();
-  }, [pagos]);
+  const [fLocal,  setFLocal]  = useState('');
+  const [fDesde,  setFDesde]  = useState('');
+  const [fHasta,  setFHasta]  = useState('');
 
   const allLocales = useMemo(() =>
     [...new Set(pagos.map(p => p.local))].sort(), [pagos]);
 
   const filtered = useMemo(() => {
     let data = [...pagos].sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.created_at || '').localeCompare(a.created_at || ''));
-    if (fLocal) data = data.filter(p => p.local === fLocal);
-    if (fMes)   data = data.filter(p => p.fecha.startsWith(fMes));
+    if (fLocal)  data = data.filter(p => p.local === fLocal);
+    if (fDesde)  data = data.filter(p => p.fecha >= fDesde);
+    if (fHasta)  data = data.filter(p => p.fecha <= fHasta);
     return data;
-  }, [pagos, fLocal, fMes]);
+  }, [pagos, fLocal, fDesde, fHasta]);
 
   const totalMonto = filtered.reduce((a, p) => a + (p.monto || 0), 0);
+  const hasFilter = fLocal || fDesde || fHasta;
 
   function openModal(nombre) {
     setPrefillLocal(nombre || '');
@@ -145,10 +143,26 @@ export function Pagos({ locales, pagos, getCC, onAdd, onDelete }) {
           <option value="">Todos los locales</option>
           {allLocales.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
-        <select value={fMes} onChange={e => setFMes(e.target.value)}>
-          <option value="">Todos los meses</option>
-          {meses.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
-        </select>
+        <input
+          type="date"
+          value={fDesde}
+          max={fHasta || undefined}
+          onChange={e => setFDesde(e.target.value)}
+          title="Desde"
+        />
+        <input
+          type="date"
+          value={fHasta}
+          min={fDesde || undefined}
+          onChange={e => setFHasta(e.target.value)}
+          title="Hasta"
+        />
+        {hasFilter && (
+          <button className="btn-outline" style={{ whiteSpace: 'nowrap' }}
+            onClick={() => { setFLocal(''); setFDesde(''); setFHasta(''); }}>
+            Limpiar
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -199,6 +213,25 @@ export function Pagos({ locales, pagos, getCC, onAdd, onDelete }) {
               </tr>
             </tfoot>
           </table>
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+          <div style={{
+            flex: 1,
+            background: 'var(--green)', color: '#fff',
+            borderRadius: 'var(--r-lg)', padding: '16px 20px',
+            display: 'flex', flexDirection: 'column', gap: 4,
+          }}>
+            <span style={{ fontSize: 11, opacity: 0.7, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total cobrado{fDesde || fHasta ? ` · ${fDesde && fHasta && fDesde === fHasta ? fmtDate(fDesde) : fDesde && fHasta ? `${fmtDate(fDesde)} – ${fmtDate(fHasta)}` : fDesde ? `Desde ${fmtDate(fDesde)}` : `Hasta ${fmtDate(fHasta)}`}` : ''}
+            </span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>
+              {fmt(totalMonto)}
+            </span>
+            <span style={{ fontSize: 12, opacity: 0.6 }}>{filtered.length} pagos</span>
+          </div>
         </div>
       )}
 
